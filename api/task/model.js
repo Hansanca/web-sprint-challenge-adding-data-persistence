@@ -13,20 +13,17 @@ function get(id) {
       return query
         .where('task_id', id)
         .first()
-        .then(async(task) => {
+        .join('projects', 'tasks.project_id', '=', 'projects.project_id')
+        .then((task) => {
           if (task) {
-            const project = await getTaskProject(task.project_id)
-            return {...mappers.taskToBody(task), ...project};
+            return mappers.taskToBody(task)
           } else {
             return null;
           }
         });
     } else {
-      return query.then((tasks) => {
-        return tasks.map(async(task) => {
-          const project = await getTaskProject(task.project_id)
-          return {...mappers.taskToBody(task), ...project};
-        });
+      return query.join('projects', 'tasks.project_id', '=', 'projects.project_id').then((tasks) => {
+        return tasks.map((task) => mappers.taskToBody(task));
       });
     }
   }
@@ -36,10 +33,4 @@ function insert(task) {
   return db("tasks")
     .insert(mappedTask)
     .then(([id]) => get(id));
-}
-
-function getTaskProject(projectId) {
-  return db("projects").select('project_name', 'project_description')
-    .where("project_id", projectId).first()
-    .then(project => project);
 }
